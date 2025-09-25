@@ -17,6 +17,8 @@
 #include <time.h>
 #include <termios.h>
 #include <linux/socket.h>
+#include <strings.h>
+#include <inttypes.h>
 typedef unsigned short sa_family_t;
 #include <linux/un.h>
 
@@ -1447,8 +1449,8 @@ static int ql_gps_stop(void) {
 }
 
 static int ql_gps_inject_time(GpsUtcTime time, int64_t timeReference, int uncertainty) {
-    D(LOG_INFO,"%s(time=%lld, timeReference=%lld, uncertainty=%d)",__FUNCTION__,
-        *((int64_t *)&time), timeReference, uncertainty);
+   // D(LOG_INFO,"%s(time=%lld, timeReference=%lld, uncertainty=%d)",__FUNCTION__,
+   //     *((int64_t *)&time), timeReference, uncertainty);
     if (strncmp(MODULE_TYPE,"UC20",4) == 0 || strncmp(MODULE_TYPE,"EC20",4) == 0
             || strncmp(MODULE_TYPE,"EC21",4) == 0 || strncmp(MODULE_TYPE,"EC25",4) == 0) {
         GPS_TLV *tlv = ( GPS_TLV *)malloc(sizeof(GPS_TLV) + sizeof(time) + sizeof(timeReference) + sizeof(uncertainty));
