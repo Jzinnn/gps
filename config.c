@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "ql-log.h"
+#include "mg-log.h"
 
 #include "gps_i2c.h"
 

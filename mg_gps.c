@@ -8,7 +8,9 @@
  * it will be loaded by the code in hardware/libhardware/hardware.c
  * which is itself called from android_location_GpsLocationProvider.cpp
  */
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
 #include <fcntl.h>
@@ -24,9 +26,9 @@ typedef unsigned short sa_family_t;
 
 #include "config.h"
 
-#define DRIVER_VERSION "Quectel_Android_GPS_Driver_V1.5.8"
+#define DRIVER_VERSION "Meig_Android_GPS_Driver_V1.0.0"
 
-#include "ql-log.h"
+#include "mg-log.h"
 
 #ifdef USE_NDK
 #include "hardware/gps.h"
@@ -898,7 +900,7 @@ void* send_command_to_module_thread(void *arg) {
         struct sockaddr_un addr;
         struct sockaddr_un *p_addr = &addr;
         const char *name = "rild-gps";
-            
+
         s = socket(AF_LOCAL, SOCK_STREAM, 0);
         if (s < 0) continue;
 
@@ -907,10 +909,10 @@ void* send_command_to_module_thread(void *arg) {
         p_addr->sun_path[0] = 0;
         memcpy(p_addr->sun_path + 1, name, strlen(name) );
 
-        if(connect(s, (struct sockaddr *) &addr, strlen(name) + offsetof(struct sockaddr_un, sun_path) + 1) < 0) {
-            D(LOG_ERR, "Error connecting rild-gps (%s)\n", strerror(errno));
+        if(connect(s, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+            D(LOG_ERR, "rild-gps %s ,count(%d)\n", strerror(errno), count);
             close(s); s = -1;
-            sleep(1);
+            sleep(3);
         }
     }
 
@@ -1171,7 +1173,7 @@ gps_state_thread(void* arg)
                             if (errno == EINTR)
                                 continue;
                             if (errno != EWOULDBLOCK)
-                                D(LOG_ERR,"error while reading from gps daemon socket: %s:", strerror(errno));
+                                D(LOG_ERR,"while reading from gps daemon socket: %s:", strerror(errno));
                             break;
                         }
 
@@ -1229,7 +1231,7 @@ static void * ql_gps_nmea_reader_thread(void *param) {
             gps_fd = socket(AF_LOCAL, SOCK_STREAM, 0);
             if (gps_fd > 0) {
                 if (connect(gps_fd, (struct sockaddr *) &addr, strlen(name) + offsetof(struct sockaddr_un, sun_path) + 1) < 0) {
-                    D(LOG_ERR, "Error connecting rild-nmea (%s)\n", strerror(errno));
+                    D(LOG_ERR, "rild-nmea %s\n", strerror(errno));
                     close(gps_fd);
                     gps_fd = -1;
                 }
@@ -1342,9 +1344,9 @@ Fail:
 static GpsCallbacks *callback_p = NULL;
 static GpsXtraCallbacks* gpsXtraCallbacks = NULL;
 
-static int ql_gps_init(GpsCallbacks* callbacks) {
+static int mg_gps_init(GpsCallbacks* callbacks) {
     int ret;
-    D(LOG_INFO,"GPS DRIVER VERSION: %s",DRIVER_VERSION);
+    D(LOG_INFO,"GPS DRIVER VERSION: %s(%s)",DRIVER_VERSION, MG_GPS_COMPILE_TIME);
 
     D(LOG_INFO,"%s(callbacks=%p)",__FUNCTION__, callbacks);
 
@@ -1355,7 +1357,7 @@ static int ql_gps_init(GpsCallbacks* callbacks) {
         D(LOG_INFO,"NOT SUPPORT %s\n",MODULE_TYPE);
         return -1; 
     }
-    D(LOG_INFO,"MODULE_TYPE:%s\nQL_GPS_CHANNEL:%s\nBAUD_RATE:%d\n",MODULE_TYPE,QL_GPS_CHANNEL,BAUD_RATE);
+    D(LOG_INFO,"MODULE_TYPE:%s  GPS_CHANNEL:%s  BAUD_RATE:%d ",MODULE_TYPE,QL_GPS_CHANNEL,BAUD_RATE);
 
     callback_p = callbacks;
     GpsState*  s = _gps_state;
@@ -1374,7 +1376,7 @@ static int ql_gps_init(GpsCallbacks* callbacks) {
     return 0;
 }
 
-static void ql_gps_cleanup(void) {
+static void mg_gps_cleanup(void) {
     D(LOG_INFO,"%s()",__FUNCTION__);
     if(gps_state == GPS_STATE_ERROR)
     {
@@ -1387,7 +1389,7 @@ static void ql_gps_cleanup(void) {
 }
 
 
-static int ql_gps_start(void) {
+static int mg_gps_start(void) {
     D(LOG_INFO,"%s()",__FUNCTION__);
     GpsState*  s = _gps_state;
     D(LOG_INFO,"%s: gps_state is %d!", __FUNCTION__,gps_state);
@@ -1398,7 +1400,7 @@ static int ql_gps_start(void) {
 		
         D(LOG_INFO,"%s: Initialize GPS again!", __FUNCTION__);
 
-        ret = ql_gps_init(callback_p);
+        ret = mg_gps_init(callback_p);
         if(ret != 0)
         {
             return -1;
@@ -1428,7 +1430,7 @@ static int ql_gps_start(void) {
     return 0;
 }
 
-static int ql_gps_stop(void) {
+static int mg_gps_stop(void) {
     D(LOG_INFO,"%s()",__FUNCTION__);
     if(gps_state == GPS_STATE_ERROR)
     {
@@ -1448,9 +1450,9 @@ static int ql_gps_stop(void) {
     return 0;
 }
 
-static int ql_gps_inject_time(GpsUtcTime time, int64_t timeReference, int uncertainty) {
-   // D(LOG_INFO,"%s(time=%lld, timeReference=%lld, uncertainty=%d)",__FUNCTION__,
-   //     *((int64_t *)&time), timeReference, uncertainty);
+static int mg_gps_inject_time(GpsUtcTime time, int64_t timeReference, int uncertainty) {
+    D(LOG_INFO,"%s(time=%lld, timeReference=%lld, uncertainty=%d)",__FUNCTION__,
+        *((int64_t *)&time), timeReference, uncertainty);
     if (strncmp(MODULE_TYPE,"UC20",4) == 0 || strncmp(MODULE_TYPE,"EC20",4) == 0
             || strncmp(MODULE_TYPE,"EC21",4) == 0 || strncmp(MODULE_TYPE,"EC25",4) == 0) {
         GPS_TLV *tlv = ( GPS_TLV *)malloc(sizeof(GPS_TLV) + sizeof(time) + sizeof(timeReference) + sizeof(uncertainty));
@@ -1468,17 +1470,17 @@ static int ql_gps_inject_time(GpsUtcTime time, int64_t timeReference, int uncert
     return 0;
 }
 
-static int ql_gps_inject_location(double latitude, double longitude, float accuracy) {
+static int mg_gps_inject_location(double latitude, double longitude, float accuracy) {
     D(LOG_INFO,"%s(latitude=%f, longitude=%f, accuracy=%f)",__FUNCTION__,
         latitude, longitude, accuracy);
     return 0;
 }
 
-static void ql_gps_delete_aiding_data(GpsAidingData flags) {
+static void mg_gps_delete_aiding_data(GpsAidingData flags) {
     D(LOG_INFO,"%s(flags=%d)",__FUNCTION__, flags);
 }
 
-static int ql_gps_set_position_mode(GpsPositionMode mode, GpsPositionRecurrence recurrence,
+static int mg_gps_set_position_mode(GpsPositionMode mode, GpsPositionRecurrence recurrence,
             uint32_t min_interval, uint32_t preferred_accuracy, uint32_t preferred_time)
 {
     D(LOG_INFO,"%s(mode=%d, recurrence=%d, min_interval=%d, preferred_accuracy=%d, preferred_time=%d)",__FUNCTION__,
@@ -1486,13 +1488,13 @@ static int ql_gps_set_position_mode(GpsPositionMode mode, GpsPositionRecurrence 
     return 0;
 }
 
-static int ql_gps_xtra_init( GpsXtraCallbacks* callbacks ) {
+static int mg_gps_xtra_init( GpsXtraCallbacks* callbacks ) {
     D(LOG_INFO,"%s(callbacks=%p)",__FUNCTION__, callbacks);
     gpsXtraCallbacks = callbacks;
     return 0;
 }
 
-static int ql_gps_xtra_inject_xtra_data( char* data, int length ) {
+static int mg_gps_xtra_inject_xtra_data( char* data, int length ) {
     D(LOG_INFO,"%s(data=%p, length=%d)",__FUNCTION__, data, length);
     if (strncmp(MODULE_TYPE,"UC20",4) == 0 || strncmp(MODULE_TYPE,"EC20",4) == 0
             || strncmp(MODULE_TYPE,"EC21",4) == 0 || strncmp(MODULE_TYPE,"EC25",4) == 0) {
@@ -1511,11 +1513,11 @@ static int ql_gps_xtra_inject_xtra_data( char* data, int length ) {
 
 static const GpsXtraInterface qlGpsXtraInterface = {
     sizeof(GpsXtraInterface),
-    ql_gps_xtra_init,
-    ql_gps_xtra_inject_xtra_data
+    mg_gps_xtra_init,
+    mg_gps_xtra_inject_xtra_data
 };
 
-static const void* ql_gps_get_extension(const char* name) {
+static const void* mg_gps_get_extension(const char* name) {
     D(LOG_INFO,"%s(name=%s)",__FUNCTION__, name);
     if (!strcmp(name, GPS_XTRA_INTERFACE))
         return &qlGpsXtraInterface;
@@ -1529,27 +1531,27 @@ static const GpsInterface  qlGpsInterface = {
      * Opens the interface and provides the callback routines 
      * to the implemenation of this interface. 
      */
-    ql_gps_init,
+    mg_gps_init,
     //when app use gps , this will be called second
     /*
      * Starts navigating.
      */  
-    ql_gps_start,
+    mg_gps_start,
     //when app exit , and does not use  gps , this will be called first
     /*
      * Stop navigating.
      */ 
-    ql_gps_stop,
+    mg_gps_stop,
     //when system disable gps , it will be called
     /*
      * Close the interface.
      */ 
-    ql_gps_cleanup,
+    mg_gps_cleanup,
     //
     /*
      * Injects the current time.
      */  
-    ql_gps_inject_time,
+    mg_gps_inject_time,
     //
     /*
      * Injects current location from another location provider
@@ -1557,26 +1559,26 @@ static const GpsInterface  qlGpsInterface = {
      * latitude and longitude are measured in degrees 
      * expected accuracy is measured in meters 
      */  
-    ql_gps_inject_location,
+    mg_gps_inject_location,
     //for Performance test
     /* 
      * Specifies that the next call to start will not use the
      * information defined in the flags. GPS_DELETE_ALL is passed for 
      * a cold start.
      */
-    ql_gps_delete_aiding_data,
+    mg_gps_delete_aiding_data,
     //when app use gps , this will be called first
     /* 
      * min_interval represents the time between fixes in milliseconds. 
      * preferred_accuracy represents the requested fix accuracy in meters. 
      * preferred_time represents the requested time to first fix in milliseconds. 
      */ 
-    ql_gps_set_position_mode,
+    mg_gps_set_position_mode,
     //
     /*
      * Get a pointer to extension information.
      */  
-    ql_gps_get_extension,
+    mg_gps_get_extension,
 };
 
 const GpsInterface* gps__get_gps_interface(struct gps_device_t* dev)
@@ -1616,8 +1618,8 @@ struct hw_module_t HAL_MODULE_INFO_SYM = {
     .version_major = 1,
     .version_minor = 0,
     .id = GPS_HARDWARE_MODULE_ID,
-    .name = "QUECTEL GPS Module",
-    .author = "Joe.Wang",
+    .name = "MEIG GPS Module",
+    .author = "Nobody",
     .methods = &gps_module_methods,
 };
 
@@ -1663,10 +1665,10 @@ int main(int argc, char *argv[]) {
     callbacks.sv_status_cb = sv_status_cb;
     callbacks.nmea_cb = nmea_cb;
     callbacks.create_thread_cb = create_thread;
-    ql_gps_init(&callbacks);
-    ql_gps_start();
+    mg_gps_init(&callbacks);
+    mg_gps_start();
     getchar();getchar();
-    ql_gps_stop();
+    mg_gps_stop();
 
     return 0;
 }

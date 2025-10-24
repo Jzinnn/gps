@@ -3,10 +3,10 @@
 //#include<sys/stat.h>
 //#include<fcntl.h>
 #include <stdarg.h>
-#include "ql-log.h"
+#include "mg-log.h"
 #include <stdio.h>
 
-int LOG_LVL = LOG_INFO;
+int LOG_LVL = LOG_DEBUG;
 
 #ifdef QL_GPS_LOG
 

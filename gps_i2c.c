@@ -16,7 +16,7 @@
 
 #include "extract.h"
 #include "gps_i2c.h"
-#include "ql-log.h"
+#include "mg-log.h"
 #define I2C_BUF_LEN 256
 
 static pthread_t i2c_read_thread = 0;

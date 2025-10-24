@@ -25,13 +25,15 @@ LOCAL_LDLIBS += -llog
 else
 LOCAL_SHARED_LIBRARIES := liblog libcutils
 endif
-LOCAL_SRC_FILES := gps_ql.c \
-	ql-log.c \
+LOCAL_SRC_FILES := mg_gps.c \
+	mg-log.c \
 	config.c \
 	extract.c \
 	gps_i2c.c
 
 LOCAL_MODULE_TAGS := optional
+
+LOCAL_CFLAGS += -DMG_GPS_COMPILE_TIME='"$(MG_GPS_COMPILE_TIME)"'
 
 LOCAL_MODULE := gps.default
 include $(BUILD_SHARED_LIBRARY)
@@ -39,11 +41,11 @@ include $(BUILD_SHARED_LIBRARY)
 ifeq (1,0)
 include $(CLEAR_VARS)
 LOCAL_SHARED_LIBRARIES := liblog libcutils
-LOCAL_SRC_FILES := gps_ql.c \
-	ql-log.c \
+LOCAL_SRC_FILES := mg_gps.c \
+	mg-log.c \
 	config.c
 LOCAL_CFLAGS += -DMAIN_TEST
 LOCAL_MODULE_TAGS := optional
-LOCAL_MODULE := gps_ql
+LOCAL_MODULE := mg_gps
 include $(BUILD_EXECUTABLE)
 endif

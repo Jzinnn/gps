@@ -20,7 +20,7 @@ void ql_write_log(const char *fmt,...);
 
 #else
 //use system log , you can use logcat to get the log 
-#define  LOG_TAG  "gps_ql"
+#define  LOG_TAG  "MeigGPS"
 
 #ifdef USE_NDK
 #include <android/log.h>
@@ -46,12 +46,21 @@ void ql_write_log(const char *fmt,...);
 
 extern int LOG_LVL;
 
-#define D(lvl,fmt,...) \
-    do\
-    {\
-        if(lvl <= LOG_LVL)\
-        {\
-            LOGD(fmt,##__VA_ARGS__);\
+#define D(lvl, fmt, ...) \
+    do {\
+        if (lvl <= LOG_LVL) {\
+            const char* prefix = "";\
+            switch (lvl) {\
+                case LOG_EMERG:   prefix = "[EMERG] "; break;\
+                case LOG_ALERT:   prefix = "[ALERT] "; break;\
+                case LOG_CRIT:    prefix = "[CRIT] "; break;\
+                case LOG_ERR:     prefix = "[ERR] "; break;\
+                case LOG_WARNING: prefix = "[WARNING] "; break;\
+                case LOG_NOTICE:  prefix = "[NOTICE] "; break;\
+                case LOG_INFO:    prefix = "[INFO] "; break;\
+                case LOG_DEBUG:   prefix = "[DEBUG] "; break;\
+                default:          prefix = "[UNKNOWN] "; break;\
+            }\
+            LOGD("%s" fmt, prefix, ##__VA_ARGS__);\
         }\
-        else{}\
-    }while(0);
+    } while (0)
